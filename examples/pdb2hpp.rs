@@ -464,22 +464,45 @@ struct EnumValue<'p> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ForwardReference<'p> {
-    kind: pdb::ClassKind,
+    kind: ForwardReferenceKind,
     name: pdb::RawString<'p>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ForwardReferenceKind {
+    Class,
+    Struct,
+    Interface,
+    Enum(String),
+}
+
+impl From<pdb::ClassKind> for ForwardReferenceKind {
+    fn from(value: pdb::ClassKind) -> Self {
+        match value {
+            pdb::ClassKind::Class => ForwardReferenceKind::Class,
+            pdb::ClassKind::Struct => ForwardReferenceKind::Struct,
+            pdb::ClassKind::Interface => ForwardReferenceKind::Interface,
+        }
+    }
 }
 
 impl fmt::Display for ForwardReference<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
+        write!(
             f,
-            "{} {};",
+            "{} {}",
             match self.kind {
-                pdb::ClassKind::Class => "class",
-                pdb::ClassKind::Struct => "struct",
-                pdb::ClassKind::Interface => "interface", // when can this happen?
+                ForwardReferenceKind::Class => "class",
+                ForwardReferenceKind::Struct => "struct",
+                ForwardReferenceKind::Interface => "interface", // when can this happen?
+                ForwardReferenceKind::Enum(_) => "enum",
             },
-            self.name.to_string()
-        )
+            self.name.to_string(),
+        )?;
+        if let ForwardReferenceKind::Enum(ty) = &self.kind {
+            write!(f, ": {ty}")?;
+        }
+        writeln!(f, ";")
     }
 }
 
@@ -534,7 +557,7 @@ impl<'p> Data<'p> {
             pdb::TypeData::Class(data) => {
                 if data.properties.forward_reference() {
                     self.forward_references.push(ForwardReference {
-                        kind: data.kind,
+                        kind: data.kind.into(),
                         name: data.name,
                     });
 
@@ -562,6 +585,19 @@ impl<'p> Data<'p> {
             }
 
             pdb::TypeData::Enumeration(data) => {
+                if data.properties.forward_reference() {
+                    self.forward_references.push(ForwardReference {
+                        kind: ForwardReferenceKind::Enum(type_name(
+                            type_finder,
+                            data.underlying_type,
+                            needed_types,
+                        )?),
+                        name: data.name,
+                    });
+
+                    return Ok(());
+                }
+
                 let mut e = Enum {
                     name: data.name,
                     underlying_type_name: type_name(
@@ -572,7 +608,9 @@ impl<'p> Data<'p> {
                     values: Vec::new(),
                 };
 
-                e.add_fields(type_finder, data.fields, needed_types)?;
+                if let Some(fields) = data.fields {
+                    e.add_fields(type_finder, fields, needed_types)?;
+                }
 
                 self.enums.insert(0, e);
             }

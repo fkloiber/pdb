@@ -254,7 +254,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 count: buf.parse_u16()?,
                 properties: TypeProperties(buf.parse_u16()?),
                 underlying_type: buf.parse()?,
-                fields: buf.parse()?,
+                fields: parse_optional_type_index(buf)?,
                 name: parse_string(leaf, buf)?,
                 unique_name: None,
             };
@@ -654,27 +654,27 @@ impl FieldAttributes {
     pub fn is_intro_virtual(self) -> bool {
         matches!(self.method_properties(), 0x04 | 0x06)
     }
-    
+
     #[inline]
     pub fn is_pseudo(self) -> bool {
         self.0 & 0x0020 != 0
     }
-    
+
     #[inline]
     pub fn noinherit(self) -> bool {
         self.0 & 0x0040 != 0
     }
-    
+
     #[inline]
     pub fn noconstruct(self) -> bool {
         self.0 & 0x0080 != 0
     }
-    
+
     #[inline]
     pub fn is_compgenx(self) -> bool {
         self.0 & 0x0100 != 0
     }
-    
+
     #[inline]
     pub fn sealed(self) -> bool {
         self.0 & 0x0200 != 0
@@ -1073,7 +1073,7 @@ pub struct EnumerationType<'t> {
     pub count: u16,
     pub properties: TypeProperties,
     pub underlying_type: TypeIndex,
-    pub fields: TypeIndex,
+    pub fields: Option<TypeIndex>,
     pub name: RawString<'t>,
     pub unique_name: Option<RawString<'t>>,
 }

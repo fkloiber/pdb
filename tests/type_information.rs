@@ -107,10 +107,14 @@ fn find_classes() {
                     }
                 }
                 Ok(pdb::TypeData::Enumeration(data)) => {
-                    println!("enum {} (type {}):", data.name, data.fields);
+                    println!("enum {} (type {:?}):", data.name, data.fields);
 
                     // fields is presently a TypeIndex
-                    match type_finder.find(data.fields).expect("find fields").parse() {
+                    match type_finder
+                        .find(data.fields.expect("enumeration missing fields"))
+                        .expect("find fields")
+                        .parse()
+                    {
                         Ok(pdb::TypeData::FieldList(list)) => {
                             for field in list.fields {
                                 println!("  - {:?}", field);
