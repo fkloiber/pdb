@@ -539,6 +539,10 @@ unsigned short  mocom       :2;     // CV_MOCOM_UDT_e
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TypeProperties(u16);
 impl TypeProperties {
+    pub fn raw(self) -> u16 {
+        self.0
+    }
+
     /// Indicates if a type is packed via `#pragma pack` or similar.
     pub fn packed(self) -> bool {
         self.0 & 0x0001 != 0
@@ -626,6 +630,10 @@ typedef enum CV_methodprop_e {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldAttributes(u16);
 impl FieldAttributes {
+    pub fn raw(self) -> u16 {
+        self.0
+    }
+
     #[inline]
     pub fn access(self) -> u8 {
         (self.0 & 0x0003) as u8
@@ -705,6 +713,9 @@ typedef struct CV_funcattr_t {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FunctionAttributes(u16);
 impl FunctionAttributes {
+    pub fn raw(self) -> u16 {
+        self.0
+    }
     pub fn calling_convention(self) -> u8 {
         (self.0 & 0xff) as u8
     }
@@ -786,6 +797,9 @@ struct lfPointerAttr {
 pub struct PointerAttributes(u32);
 
 impl PointerAttributes {
+    pub fn raw(self) -> u32 {
+        self.0
+    }
     /// Indicates the type of pointer.
     pub fn pointer_kind(self) -> PointerKind {
         match self.0 & 0x1f {
